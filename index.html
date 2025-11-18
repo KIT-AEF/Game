@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="ltr">
 <head>
@@ -9,7 +8,18 @@
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@200;400;500;600;700;800;900&display=swap");
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Poppins", sans-serif; }
-    body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: url("https://i.pinimg.com/originals/d7/b9/0c/d7b90cc80898e8823455a127945719af.jpg") no-repeat; background-size: cover; background-position: center; overflow-y: auto; position: relative;
+    
+    /* خلفية وتنسيق الجسم */
+    body { 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        min-height: 100vh; 
+        background: url("https://i.pinimg.com/originals/d7/b9/0c/d7b90cc80898e8823455a127945719af.jpg") no-repeat; 
+        background-size: cover; 
+        background-position: center; 
+        overflow-y: auto; 
+        position: relative;
     }
 
     /* --- Sidebar Styles --- */
@@ -84,7 +94,20 @@
     }
 
     /* --- General Styles --- */
-    .wrapper { margin-top: 80px; width: 420px; background-color: transparent; border: 2px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(15px); box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); color: #fff; border-radius: 16px; padding: 20px 30px; direction: rtl; }
+    /* تم التعديل هنا لضمان التجاوب مع الهواتف */
+    .wrapper { 
+        margin-top: 80px; 
+        width: 420px; 
+        max-width: 90%; /* إصلاح للهواتف */
+        background-color: transparent; 
+        border: 2px solid rgba(255, 255, 255, 0.2); 
+        backdrop-filter: blur(15px); 
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); 
+        color: #fff; 
+        border-radius: 16px; 
+        padding: 20px 30px; 
+        direction: rtl; 
+    }
     .wrapper h1 { font-size: 30px; text-align: center; margin-bottom:20px;}
     .wrapper .input-box { width: 100%; height: 50px; position: relative; margin: 30px 0; }
     .input-box input { width: 100%; height: 100%; background: transparent; border: none; outline: none; border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 40px; font-size: 16px; color: #fff; padding: 20px 45px 20px 20px; text-align: right; direction: rtl; }
@@ -483,7 +506,7 @@
   </section>
 
 
-  <section id="rps" class="game-section"> <h2>حجر ورقة مقص 🧱📄✂️</h2> <div class="gamebox"> <button data-choice="🧱">🧱</button> <button data-choice="📄">📄</button> <button data-choice="✂️">✂️</button> </div> <div class="result">اختر لبدء!</d> <div class="game-controls"><button id="rps-exit-game">إنهاء اللعب</button></div> </section>
+  <section id="rps" class="game-section"> <h2>حجر ورقة مقص 🧱📄✂️</h2> <div class="gamebox"> <button data-choice="🧱">🧱</button> <button data-choice="📄">📄</button> <button data-choice="✂️">✂️</button> </div> <div class="result">اختر لبدء!</div> <div class="game-controls"><button id="rps-exit-game">إنهاء اللعب</button></div> </section>
   <section id="click" class="game-section"> <h2>اصطياد الهدف 🎯</h2> <div class="gamebox"><button id="click-start">ابدأ</button> <button id="click-exit-game" style="display:none;">إنهاء اللعب</button> </div> <div id="click-target-area" class="gamebox" style="display:none;"></div> <div class="status">اضغط "ابدأ"</div> </section>
   <section id="react" class="game-section"> <h2>اختبار سرعة الضغط ⌛</h2> <div class="timebox" id="react-box">اضغط للبدء</div> <div class="game-controls" style="margin-top:5px;"><button id="react-exit-game">إنهاء اللعب</button></div></section>
   <section id="dice" class="game-section"> <h2>لعبة النرد 🎲</h2> <div class="gamebox"><button id="dice-roll">رمي النرد</button> <button id="dice-exit-game">إنهاء اللعب</button></div> <div class="result" id="dice-result" style="font-size: 3rem;">--</div> </section>
@@ -747,7 +770,8 @@
               return false;
           } catch (error) {
               console.error("Error checking ban status:", error);
-              return false;
+              // إذا حدث خطأ (مثل مشاكل الإنترنت)، نفترض أن المستخدم غير محظور للسماح له بالدخول، أو يمكن تغييره ل true
+              return false; 
           }
       };
 
@@ -789,12 +813,14 @@
             if(settingsUserEmailEl) settingsUserEmailEl.textContent = user.email;
             updateUserDocument(user);
           } else if (!isBanned) {
-            updateElementText(authStatusDiv, `تم تسجيل الدخول كـ ${user.email}. يرجى التحقق من بريدك الإلكتروني للوصول الكامل.`, 'info');
+            // الحالة: مسجل دخول لكن لم يفعل الإيميل
+            updateElementText(authStatusDiv, `مرحباً ${user.email}. يرجى فحص بريدك الإلكتروني (Inbox/Spam) والضغط على رابط التفعيل للوصول الكامل.`, 'error');
+            // نمنع الوصول لباقي الخصائص
             if(gameIconsGridContainer) gameIconsGridContainer.innerHTML = '';
             if(settingsUserEmailEl) settingsUserEmailEl.textContent = "يرجى التحقق من بريدك أولاً.";
-            if(settingsUsernameInput) settingsUsernameInput.value = '';
-            if(settingsDisplayNameInput) settingsDisplayNameInput.value = '';
-            if(settingsBioInput) settingsBioInput.value = '';
+            
+            // خيار: تسجيل خروج تلقائي إذا أردت إجبارهم، لكن الرسالة التوضيحية أفضل
+            // auth.signOut(); 
           }
           navLoginLinkSidebar.textContent = 'تسجيل الخروج';
           navLoginLinkSidebar.href = "#logout";
@@ -865,8 +891,8 @@
                         updateElementText(authStatusDiv, "هذا الحساب محظور.", 'error');
                         auth.signOut();
                     } else if (!userCredential.user.emailVerified) {
-                        updateElementText(authStatusDiv, "لقد سجلت الدخول، ولكن يجب التحقق من بريدك الإلكتروني أولاً.", 'error');
-                        auth.signOut();
+                        updateElementText(authStatusDiv, "تم الدخول، ولكن لم تقم بتفعيل البريد الإلكتروني. تحقق من بريدك.", 'error');
+                        // لا نسجل الخروج فوراً لنسمح لهم برؤية الرسالة، لكن واجهة المستخدم ستقيد الوصول
                     } else {
                         loginEmailInput.value = ''; loginPasswordInput.value = '';
                     }
@@ -887,7 +913,7 @@
                 if (userCredential.user) {
                   userCredential.user.sendEmailVerification()
                     .then(() => {
-                      updateElementText(authStatusDiv, 'تم إنشاء الحساب بنجاح! تم إرسال رسالة تحقق إلى بريدك الإلكتروني. يرجى التحقق منها ثم تسجيل الدخول.', 'success');
+                      updateElementText(authStatusDiv, 'تم إنشاء الحساب بنجاح! تم إرسال رابط تفعيل لبريدك. اضغط عليه ثم سجل الدخول.', 'success');
                       auth.signOut();
                     })
                     .catch((error) => {
@@ -1116,7 +1142,7 @@
                 }
             }, error => {
                 console.error("Error fetching chat messages: ", error);
-                messagesContainer.innerHTML = '<p style="text-align:center; color:red;">خطأ في تحميل الرسائل.</p>';
+                messagesContainer.innerHTML = '<p style="text-align:center; color:red;">خطأ في تحميل الرسائل. (قد تحتاج لإنشاء Index في Firestore)</p>';
             });
       };
 
