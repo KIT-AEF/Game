@@ -9,7 +9,6 @@
     @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@200;400;500;600;700;800;900&display=swap");
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Poppins", sans-serif; }
     
-    /* خلفية وتنسيق الجسم */
     body { 
         display: flex; 
         justify-content: center; 
@@ -53,9 +52,7 @@
         direction: rtl;
         box-shadow: -5px 0 15px rgba(0,0,0,0.2);
     }
-    .sidebar.open {
-        width: 260px;
-    }
+    .sidebar.open { width: 260px; }
     .sidebar a {
         padding: 12px 15px 12px 30px;
         text-decoration: none;
@@ -65,9 +62,7 @@
         transition: 0.2s;
         border-bottom: 1px solid #002b4d;
     }
-    .sidebar a:last-child {
-        border-bottom: none;
-    }
+    .sidebar a:last-child { border-bottom: none; }
     .sidebar a:hover, .sidebar a.active-nav-link {
         color: #fff;
         background-color: #003B73;
@@ -81,17 +76,13 @@
         color: #b0bec5;
         cursor: pointer;
     }
-     .sidebar .sidebar-close-btn:hover {
-        color: #fff;
-     }
+     .sidebar .sidebar-close-btn:hover { color: #fff; }
 
     #admin-button-sidebar {
         background-color: rgba(220, 53, 69, 0.7);
         color: white !important;
     }
-    #admin-button-sidebar:hover {
-         background-color: #dc3545;
-    }
+    #admin-button-sidebar:hover { background-color: #dc3545; }
 
     /* --- General Styles --- */
     .wrapper { 
@@ -131,12 +122,10 @@
     section#login.active { background: transparent; box-shadow: none; border: none; padding: 0; max-width: none; }
     section h2 { margin-top: 0; color: #003B73; text-align: center; margin-bottom: 20px; }
     
-    /* General Buttons inside sections */
     section:not(#login) button { padding:10px 15px; margin:8px 4px; font-size:0.9rem; cursor:pointer; border:none; border-radius:8px; background:#005A9C; color:white; transition:background .2s; }
     section:not(#login) button:hover { background:#003B73; }
     section:not(#login) button:disabled { background:#ccc; cursor:not-allowed; }
 
-    .hidden-by-auth { display: none !important; }
     .button-text { margin: 0 5px; }
 
     /* Settings Styles */
@@ -154,7 +143,7 @@
     }
     #settings textarea { min-height: 80px; resize: vertical;}
 
-    /* Admin Area Styles */
+    /* Admin Area */
     #admin-area h3 { margin-top: 20px; margin-bottom: 10px; color: #003B73; }
     #admin-users-list-container ul { list-style: none; padding: 0; }
     #admin-users-list-container li { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; margin-bottom: 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
@@ -445,6 +434,7 @@
     let receivedRequestsListener = null;
     let sentRequestsListener = null;
     let currentUserData = null;
+    let pendingStatusMessage = null; // متغير لحل مشكلة اختفاء الرسالة
 
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -534,6 +524,7 @@
                 updateElementText(profileSettingsStatusDiv, "يجب تسجيل الدخول لحفظ الإعدادات.", 'error');
                 return;
             }
+            // Force lowercase for username
             const newUsername = settingsUsernameInput.value.trim().toLowerCase();
             const newDisplayName = settingsDisplayNameInput.value.trim();
             const newBio = settingsBioInput.value.trim();
@@ -592,13 +583,15 @@
 
           userDocRef.get().then(docSnapshot => {
             const existingData = docSnapshot.exists ? docSnapshot.data() : {};
+            // Generate a default lowercase username from email if not exists
+            const defaultUsername = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '_');
             const defaultDisplayName = user.email.split('@')[0];
 
             const dataToSet = {
                 email: user.email,
                 uid: user.uid,
                 displayName: existingData.displayName || defaultDisplayName,
-                username: existingData.username || '',
+                username: existingData.username || defaultUsername,
                 bio: existingData.bio || '',
                 friends: existingData.friends || [],
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
@@ -648,7 +641,6 @@
               return false;
           } catch (error) {
               console.error("Error checking ban status:", error);
-              // إذا حدث خطأ (مثل مشاكل الإنترنت)، نفترض أن المستخدم غير محظور للسماح له بالدخول، أو يمكن تغييره ل true
               return false; 
           }
       };
@@ -689,9 +681,7 @@
             if(settingsUserEmailEl) settingsUserEmailEl.textContent = user.email;
             updateUserDocument(user);
           } else if (!isBanned) {
-            // الحالة: مسجل دخول لكن لم يفعل الإيميل
-            updateElementText(authStatusDiv, `مرحباً ${user.email}. يرجى فحص بريدك الإلكتروني (Inbox/Spam) والضغط على رابط التفعيل للوصول الكامل.`, 'error');
-            // نمنع الوصول لباقي الخصائص
+            updateElementText(authStatusDiv, `مرحباً ${user.email}. يرجى فحص بريدك الإلكتروني والضغط على رابط التفعيل.`, 'error');
             if(settingsUserEmailEl) settingsUserEmailEl.textContent = "يرجى التحقق من بريدك أولاً.";
           }
           navLoginLinkSidebar.textContent = 'تسجيل الخروج';
@@ -701,7 +691,15 @@
           currentUserData = null;
           isLoginMode = true;
           updateLoginModeUI();
-          updateElementText(authStatusDiv, 'يرجى تسجيل الدخول أو إنشاء حساب جديد.', 'info');
+          
+          // FIX: Check for pending message (like registration success) before resetting status
+          if (pendingStatusMessage) {
+              updateElementText(authStatusDiv, pendingStatusMessage, 'success');
+              pendingStatusMessage = null;
+          } else {
+              updateElementText(authStatusDiv, 'يرجى تسجيل الدخول أو إنشاء حساب جديد.', 'info');
+          }
+
           navLoginLinkSidebar.textContent = 'تسجيل الدخول';
           navLoginLinkSidebar.href = "#login";
 
@@ -763,7 +761,6 @@
                         auth.signOut();
                     } else if (!userCredential.user.emailVerified) {
                         updateElementText(authStatusDiv, "تم الدخول، ولكن لم تقم بتفعيل البريد الإلكتروني. تحقق من بريدك.", 'error');
-                        // لا نسجل الخروج فوراً لنسمح لهم برؤية الرسالة، لكن واجهة المستخدم ستقيد الوصول
                     } else {
                         loginEmailInput.value = ''; loginPasswordInput.value = '';
                     }
@@ -784,12 +781,13 @@
                 if (userCredential.user) {
                   userCredential.user.sendEmailVerification()
                     .then(() => {
-                      updateElementText(authStatusDiv, 'تم إنشاء الحساب بنجاح! تم إرسال رابط تفعيل لبريدك. اضغط عليه ثم سجل الدخول.', 'success');
+                      // FIX: Set pending message before sign out so updateAuthUI can pick it up
+                      pendingStatusMessage = 'تم إنشاء الحساب بنجاح! تم إرسال رابط تفعيل لبريدك. اضغط عليه ثم سجل الدخول.';
                       auth.signOut();
                     })
                     .catch((error) => {
                       console.error("Error sending verification email:", error);
-                      updateElementText(authStatusDiv, 'تم إنشاء الحساب، ولكن فشل إرسال بريد التحقق. حاول تسجيل الدخول لاحقًا.', 'error');
+                      updateElementText(authStatusDiv, 'تم إنشاء الحساب، ولكن فشل إرسال بريد التحقق.', 'error');
                        auth.signOut();
                     });
                 }
@@ -797,10 +795,8 @@
               })
               .catch((error) => {
                 let msg = "حدث خطأ. حاول مرة أخرى.";
-                if (error.code === 'auth/invalid-api-key' || (error.code === 'auth/internal-error' && error.message.includes("API key not valid"))) {
-                    msg = "خطأ في تهيئة خدمة المصادقة. تأكد من صحة مفتاح API في الكود.";
-                } else if (error.code === 'auth/email-already-in-use') msg = "هذا البريد الإلكتروني مستخدم بالفعل.";
-                else if (error.code === 'auth/weak-password') msg = "كلمة المرور ضعيفة (6 حروف على الأقل).";
+                if (error.code === 'auth/email-already-in-use') msg = "هذا البريد الإلكتروني مستخدم بالفعل.";
+                else if (error.code === 'auth/weak-password') msg = "كلمة المرور ضعيفة.";
                 else if (error.code === 'auth/invalid-email') msg = "صيغة البريد الإلكتروني غير صحيحة.";
                 console.error("Auth Error Code:",error.code, "Message:", error.message); updateElementText(authStatusDiv, msg, 'error');
               })
@@ -812,7 +808,6 @@
 
       btnLogout.addEventListener('click', () => {
         auth.signOut().catch(e => console.error('Logout error', e));
-        updateElementText(authStatusDiv, 'يرجى تسجيل الدخول أو إنشاء حساب جديد.', 'info');
         window.location.hash = 'login';
         closeSidebar();
       });
@@ -879,8 +874,14 @@
                         userInfoDiv.innerHTML = `
                             <p class="username-search">@${userData.username || 'غير معروف'}</p>
                             <p>${userData.displayName || 'اسم غير محدد'}</p>
-                            ${userData.bio ? `<p class="bio-search">${userData.bio}</p>` : ''}
                         `;
+                        // Safe Bio Text Content
+                        if (userData.bio) {
+                            const bioP = document.createElement('p');
+                            bioP.className = 'bio-search';
+                            bioP.textContent = userData.bio;
+                            userInfoDiv.appendChild(bioP);
+                        }
 
                         const userActionsDiv = document.createElement('div');
                         userActionsDiv.className = 'user-actions';
@@ -917,6 +918,7 @@
 
         const button = document.createElement('button');
 
+        // Check currentUserData which is updated by the listener
         if (currentUserData.friends && currentUserData.friends.includes(targetUserId)) {
             button.textContent = 'أصدقاء';
             button.disabled = true;
@@ -1009,11 +1011,11 @@
                     }
                 });
                 if (messagesContainer.children.length > 0 && messagesContainer.scrollHeight > messagesContainer.clientHeight) {
-                     setTimeout(() => messagesContainer.scrollTop = messagesContainer.scrollHeight, 0); // Ensure scroll after DOM update
+                     setTimeout(() => messagesContainer.scrollTop = messagesContainer.scrollHeight, 0);
                 }
             }, error => {
                 console.error("Error fetching chat messages: ", error);
-                messagesContainer.innerHTML = '<p style="text-align:center; color:red;">خطأ في تحميل الرسائل. (قد تحتاج لإنشاء Index في Firestore)</p>';
+                messagesContainer.innerHTML = '<p style="text-align:center; color:red;">خطأ في تحميل الرسائل.</p>';
             });
       };
 
@@ -1027,7 +1029,7 @@
         msgBubble.classList.add(isSentByCurrentUser ? 'sent' : 'received');
 
         const textNode = document.createElement('span');
-        textNode.textContent = msgData.text;
+        textNode.textContent = msgData.text; // Prevent XSS
         msgBubble.appendChild(textNode);
 
         if (msgData.timestamp && msgData.timestamp.toDate) {
@@ -1285,7 +1287,7 @@
         if (targetIdToShow === 'user-search' && userSearchStatusDiv) updateElementText(userSearchStatusDiv, 'أدخل اسم مستخدم للبحث.', 'info');
         if (targetIdToShow === 'friends-section') {
             showFriendsTab('my-friends');
-            loadFriendsData();
+            loadFriendsData(); // Trigger load
         }
       };
 
@@ -1472,7 +1474,7 @@
 
       async function displayFriendsList(items, container, type) {
         if (!container) return;
-        container.innerHTML = '';
+        container.innerHTML = ''; // FIX: Clear list first
         if (items.length === 0) {
             let msg = '';
             if (type === 'friend') msg = 'ليس لديك أصدقاء بعد. ابحث عن أصدقاء جدد!';
@@ -1482,11 +1484,12 @@
             return;
         }
 
-        for (const item of items) {
+        // FIX: Use Promise.all to load items faster and correctly
+        const itemPromises = items.map(async (item) => {
             let userData, requestId;
             if (type === 'friend') { // item is a UID
                 const userDoc = await db.collection('users').doc(item).get();
-                if (!userDoc.exists) continue;
+                if (!userDoc.exists) return null;
                 userData = userDoc.data();
                 userData.uid = item;
             } else { // item is a request object
@@ -1495,12 +1498,11 @@
                     userData = { uid: item.senderId, username: item.senderUsername, displayName: item.senderDisplayName };
                 } else { // sent
                      const userDoc = await db.collection('users').doc(item.receiverId).get();
-                     if (!userDoc.exists) continue;
+                     if (!userDoc.exists) return null;
                      userData = userDoc.data();
                      userData.uid = item.receiverId;
                 }
             }
-
 
             const listItem = document.createElement('div');
             listItem.className = 'friends-list-item';
@@ -1550,8 +1552,14 @@
             listItem.appendChild(picDiv);
             listItem.appendChild(infoDiv);
             listItem.appendChild(actionsDiv);
-            container.appendChild(listItem);
-        }
+            return listItem;
+        });
+
+        // Wait for all DB fetches
+        const elements = await Promise.all(itemPromises);
+        elements.forEach(el => {
+            if (el) container.appendChild(el);
+        });
       }
 
       async function unfriendUser(friendUid) {
